@@ -1,0 +1,7 @@
+(in-package :nexmo)
+(defvar *server-callback* "")
+(defvar *key* "")
+(defvar *secret* "")
+(defvar *app-id* "")
+(defvar *key-file* "")
+(defvar *handlers* (make-hash-table :test #'equal))
