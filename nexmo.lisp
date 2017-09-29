@@ -14,6 +14,9 @@
 
 (defun jwt-key (&optional (app-id *app-id*) (key-file *key-file*))
   (UIOP:run-program
+   (format nil "nexmo setup ~A ~A" *key* *secret*)
+   :input nil :output '(:string :stripped t))
+  (UIOP:run-program
    (format nil "nexmo jwt:generate ~A application_id=~A"key-file app-id)
    :input nil :output '(:string :stripped t)))
 

@@ -16,8 +16,9 @@ install:
     fi
 
 before_script:
-  - openssl aes-256-cbc -k "$password" -in key-secret.lisp.enc -out key-secret.lisp
-  - openssl aes-256-cbc -k "$password" -in nexmo1.key.enc -out nexmo1.key
-
+  - openssl aes-256-cbc -k "$password" -in key-secret.lisp.enc -out key-secret.lisp -d
+  - openssl aes-256-cbc -k "$password" -in nexmo1.key.enc -out nexmo1.key -d
+  - apt-get install npm
+  - npm install nexmo-cli
 script:
   - cl -e '(ql:quickload :nexmo) (uiop:quit 0);success'
