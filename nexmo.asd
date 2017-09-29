@@ -9,7 +9,7 @@
                #:hunchentoot
                #:babel
                #:lparallel
-               #:cljwt
+;               #:cljwt
                #:UIOP)
   :serial t
   :components ((:file "package")
