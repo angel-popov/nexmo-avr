@@ -1,6 +1,6 @@
 (in-package #:nexmo)
 
-(load "~/.config/nexmo/key-secret.lisp") ; the file contains key info - see bellow
+(load "key-secret.lisp") ; the file contains key info - see bellow
 ;;
 ;; (setf *server-callback* "http://..."
 ;;       *key* "..."
@@ -14,7 +14,7 @@
 
 (defun jwt-key (&optional (app-id *app-id*) (key-file *key-file*))
   (UIOP:run-program
-   (format nil "nexmo jwt:generate  ~~/.ssh/~A application_id=~A"key-file app-id)
+   (format nil "nexmo jwt:generate ~A application_id=~A"key-file app-id)
    :input nil :output '(:string :stripped t)))
 
 (defun nexmo-query (url method content-type headers body )

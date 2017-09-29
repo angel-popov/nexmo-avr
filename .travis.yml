@@ -15,27 +15,9 @@ install:
       curl https://raw.githubusercontent.com/luismbo/cl-travis/master/install.sh | sh;
     fi
 
-# this bit is just testing that travis correctly sets up ASDF to find
-# systems placed somewhere within ~/lisp. You can remove this section
-# in your own .travis.yml file.
 before_script:
-  - echo "(defsystem :dummy-cl-travis-system)" > ~/lisp/dummy-cl-travis-system.asd
+  - openssl aes-256-cbc -k "$password" -in key-secret.lisp.enc -out key-secret.lisp
+  - openssl aes-256-cbc -k "$password" -in nexmo1.key.enc -out nexmo1.key
 
-# this serves as an example of how to use the 'cl' script (provided by
-# CIM) to test your Lisp project. Here, we're using the RT framework
-# to do unit testing; other frameworks will have different ways of
-# determining whether a test suite fails or succeeds.
 script:
-  - ls -l
-  - cl -e '(ql:quickload :nexmo)
-           (rtest:do-tests)
-           (uiop:quit 0);success'
-  - cl -e '(ql:quickload :cl-travis-test)
-           (rtest:do-tests)
-           (unless (null (rtest:pending-tests))
-             (uiop:quit 1))'
-  - cl -e '(ql:quickload :cl-travis-test)
-           (pushnew :force-test-failure *features*)
-           (rtest:do-tests)
-           (unless (null (rtest:pending-tests))
-             (uiop:quit 1))';
+  - cl -e '(ql:quickload :nexmo) (uiop:quit 0);success'
