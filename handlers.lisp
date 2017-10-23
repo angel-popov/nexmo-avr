@@ -8,7 +8,7 @@
 
 (defun app-event(id)
   #'(lambda(url params body)
-      (format t "url:~A,params:~A,body:~A" url params body)
+      (hunchentoot:log-message* 'event "url:~A,params:~A,body:~A" url params body)
       ;; (let((res (jsown:parse body)))
       ;;   (when (equal (jsown:val res "status") "started")
       ;;     (let ((result (call-dtmf :id (jsown:val res "uuid"))))
@@ -33,7 +33,7 @@
                     ("timeOut" timeout)
                     ("maxDigits" max-digits)
                     ("submitOnHash" submit-on-hash)
-                    ("eventUrl" (list (to-url (add-handler handler)))))))
+                    ("eventUrl" (list (to-url (add-handler #'(lambda(url params body)(funcall handler url params body)))))))))
 
 (defun ncco( &rest items)
   #'(lambda(url params body)

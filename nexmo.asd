@@ -14,5 +14,6 @@
   :serial t
   :components ((:file "package")
                (:file "vars")
+               (:file "nexmo")
                (:file "handlers")
-               (:file "nexmo")))
+               ))

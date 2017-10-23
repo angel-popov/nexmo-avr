@@ -39,8 +39,8 @@
                   (callback (format nil "~A/sms" *server-callback*)))
   (nexmo-query "https://rest.nexmo.com/sms/json"
                :POST "application/x-www-form-urlencoded" nil
-               (to-www-form `(("api_key" *api*)
-                              ("api_secret" *secret*)
+               (to-www-form `(("api_key" ,*api*)
+                              ("api_secret" ,*secret*)
                               ("to" ,to)
                               ("from" ,from)
                               ("text" ,text)
@@ -65,8 +65,8 @@
                           (answer-url (format nil "~A/app-answer-url" *server-callback*))
                           (events-url (format nil "~A/app-events-url" *server-callback*)))
   (nexmo-query "https://api.nexmo.com/v1/applications" :POST "application/x-www-form-urlencoded" nil
-               (to-www-form `(("api_key" *api*)
-                              ("api_secret" *secret*)
+               (to-www-form `(("api_key" ,*api*)
+                              ("api_secret" ,*secret*)
                               ("name" ,name)
                               ("type" ,type)
                               ("answer_url" ,answer-url)
@@ -74,23 +74,47 @@
 
 (defun applications (&key (answer-url (format nil "~A/sms" *server-callback*))
                        (events-url (format nil "~A/sms" *server-callback*)))
-  (nexmo-query (format nil "https://api.nexmo.com/v1/applications/?~A" (to-www-form `(("api_key" *api*)
-                                                                                      ("api_secret" *secret*))))
+  (nexmo-query (format nil "https://api.nexmo.com/v1/applications/?~A" (to-www-form `(("api_key" ,*api*)
+                                                                                      ("api_secret" ,*secret*))))
                :get nil nil nil nil ))
 
 (defun call-new (&key (to "359899041649")
                    (from "359899041649")
                    (call-id nil)
-                   (answer-url (list (to-url (add-handler (ncco (talk :text "Start typing dtmf" :barge-in :null :repeat 1)
+                   (answer-url (list (to-url (add-handler (ncco (talk :text "will speak something in order two legs of the conversation to be prepared."
+                                                                      :barge-in t :repeat 1)
                                                                 (input #'(lambda(url params body)
-                                                                           (let ((res (call-dtmf :id call-id :digits  "1234567890#")))
+                                                                           (let ((res (call-dtmf :id call-id :digits  "2")))
                                                                              (hunchentoot:log-message* 'DTMFPLAY "play-dtmf to ~A conversation:~A:body ~A" call-id res body)
-                                                                             (funcall (ncco (talk :text "Dtmf completed.Waiting for response from another party"
-                                                                                                  :barge-in :null  :repeat 50))
-                                                                                      url params body)
-                                                                             ))
-                                                                       :timeout 1)
-                                                                )
+                                                                             (funcall (ncco (talk :text "Dtmf entering callback phone"
+                                                                                                  :barge-in t  :repeat 1)
+                                                                                            (input #'(lambda(url params body)
+                                                                                                       (call-dtmf :id call-id :digits  "35989041649#")
+                                                                                                       (hunchentoot:log-message*
+                                                                                                        'SUCCESS
+                                                                                                        "dtmf back:~A" (jsown:val
+                                                                                                                        (jsown:parse body)
+                                                                                                                        "dtmf"))
+                                                                                                       (funcall
+                                                                                                        (ncco
+                                                                                                         (talk :text "confirm callback phone"
+                                                                                                               :barge-in t  :repeat 1)
+                                                                                                         (input #'(lambda(url params body)
+                                                                                                                    (call-dtmf :id call-id :digits  "1")
+                                                                                                                    (hunchentoot:log-message*
+                                                                                                                     'SUCCESS
+                                                                                                                     "dtmf back:~A" (jsown:val
+                                                                                                                                     (jsown:parse body)
+                                                                                                                                     "dtmf"))
+                                                                                                                    (funcall (talk :text (format nil "Thank you.")
+                                                                                                                                   :barge-in :null
+                                                                                                                                   :repeat 30)
+                                                                                                                             url params body))
+                                                                                                                :timeout 5) )
+                                                                                                        url params body))
+                                                                                                   :timeout 5) )
+                                                                                      url params body)))
+                                                                       :timeout 20) )
                                                           "active-answer"))))
                    (event-url (list (to-url (add-handler (app-event "active-event") "active-event")))))
   (let ((res (nexmo-query "https://api.nexmo.com/v1/calls"
@@ -103,7 +127,10 @@
     (setf call-id (jsown:val res "uuid")
           *last* (jsown:val res "uuid"))
     res))
-
+(defun attachment()
+  (nexmo-query (format nil "https://api.nexmo.com/v1/files/e54678aa-acce-4557-9c38-267e70dee5f7" )
+               :get "application/json" (print `(("Authorization" . ,(format nil "Bearer ~A" (jwt-key)))))
+               ()))
 (defun call-dtmf (&key (id "call-id")
                     (digits "359899041649"))
   (format t "https://api.nexmo.com/v1/calls/~A/dtmf" id)
@@ -111,7 +138,7 @@
                :put "application/json" `(("Authorization" . ,(format nil "Bearer ~A" (jwt-key))))
                (jsown:to-json (jsown:new-js ("digits" digits)))))
 
-(defun call(&key (id "call-id") )
+(defun call-info (&key (id "call-id") )
   (nexmo-query (format nil "https://api.nexmo.com/v1/calls/~A" id)
                :get "application/json" `(("Authorization" . ,(format nil "Bearer ~A" (jwt-key))))
                ()))
@@ -156,14 +183,14 @@
     (hunchentoot:log-message* 'answ "~A" ,answer)
     ,answer))
 
-(nexmo-handler app-event "")
-(nexmo-handler app-answer "[
-    {
-      \"action\": \"talk\",
-      \"voiceName\": \"Jennifer\",
-      \"text\": \"Hello, thank you for calling. This is Jennifer from Nexmo. Ciao.\"
-    }
-  ]" )
+;; (nexmo-handler app-event "")
+;; (nexmo-handler app-answer "[
+;;     {
+;;       \"action\": \"talk\",
+;;       \"voiceName\": \"Jennifer\",
+;;       \"text\": \"Hello, thank you for calling. This is Jennifer from Nexmo. Ciao.\"
+;;     }
+;;   ]" )
 
 
 (nexmo-handler app-events-url "[]")
@@ -212,19 +239,36 @@
                                  "app" (hunchentoot:get-parameters*) body)))
             (hunchentoot:log-message* 'answ "~A" (jsown:to-json answer))
             (jsown:to-json answer))
-          (hunchentoot:log-message* 'error "Handler for the request not found") )
-      )
-     ))
+          (hunchentoot:log-message* 'error "Handler for the request not found") ) ) ))
 
 (defvar *server* (make-instance 'hunchentoot:easy-acceptor :port 4242))
 
 (defun start-server()
-  (add-handler (ncco (talk :text "Hello,type your number."
-                           :barge-in t :repeat 5)
+  (add-handler (ncco #'(lambda(url params body)
+                         (let ((to (hunchentoot:get-parameter "to")))
+                           (funcall (talk :text (format nil "Hello, you are calling ~A. Please type something."
+                                                        (cond ((equal "12017621651" to) "english sales")
+                                                              ((equal "12017621652" to) "espanian sales")
+                                                              ((equal "12312377880" to) "support")
+                                                              (t (format t "~{~A ~}" (coerce to 'list))) ))
+                                          :barge-in t :repeat 50) url params body)
+                           )
+                         )
                      (input #'(lambda(url params body)
-                                (funcall (ncco (talk :text (format nil "You have pressed ~A" (jsown:val (jsown:parse body) "dtmf"))
-                                                     :barge-in :null))
-                                         url params body))
+                                (let* ((json-body (jsown:parse body))
+                                       (dtmf (jsown:val json-body "dtmf"))
+                                       (call-id (jsown:val json-body "uuid")))
+                                  (funcall (ncco (talk :text (format nil "You have pressed ~A" dtmf)
+                                                      :barge-in :null)
+                                                (input #'(lambda(url params body)
+                                                           (hunchentoot:log-message* 'AGENT-CALL "Call: ~A CallInfo:~A" call-id (call-info :id call-id))
+                                                           (let ((res (call-dtmf :id call-id :digits  (format nil "~A#"dtmf))))
+                                                             (hunchentoot:log-message* 'AGENT-DTMFPLAY "play-dtmf to ~A conversation:~A:body ~A" call-id res body)
+                                                             (funcall (ncco (talk :text "Thank you! Bye."))
+                                                                      url params body)
+                                                             ))
+                                                       :timeout 1))
+                                          url params body)))
                             :submit-on-hash t
                             :max-digits 20
                             :timeout 58))
